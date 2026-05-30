@@ -1,50 +1,59 @@
 const mineflayer = require('mineflayer');
 const express = require('express');
 
-// --- Web Server (for Render) ---
+// --- 1. Web Server (Keeps Render from sleeping) ---
 const app = express();
 app.get('/', (req, res) => res.send('Bot is active.'));
-app.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
 
-// --- Bot Configuration ---
+// --- 2. Bot Configuration ---
 const config = {
-    host: 'fun.kelmora.cloud',
-    username: 'Obanai_Iguro1479',
-    password: 'Aniket@1479', // Only needed if the server asks for /login
-    auth: 'offline' 
+    host: 'YOUR_SERVER_IP', // <--- REPLACE THIS
+    port: 25565,            // Usually 25565
+    username: 'YOUR_BOT_NAME',
+    password: 'YOUR_PASSWORD',
+    auth: 'offline'         // Change to 'microsoft' if your server is Premium
 };
 
 function createBot() {
     const bot = mineflayer.createBot(config);
 
-    bot.on('spawn', () => {
-        console.log('Bot spawned. Waiting for login prompt...');
-        
-        // 1. Wait a few seconds for the server to load, then login
-        setTimeout(() => {
-            bot.chat(`/login ${config.password}`);
-            console.log('Login command sent.');
-            
-            // 2. Wait a bit more, then switch to survival
-            setTimeout(() => {
-                bot.chat('/server survival');
-                console.log('Server switch command sent.');
-            }, 3000); 
-        }, 2000);
-    });
-
+    // Logs server messages to your Render console
     bot.on('message', (jsonMsg) => {
-        // Optional: Debugging - see what the server is saying
-        console.log(jsonMsg.toString());
+        const text = jsonMsg.toString();
+        console.log(text);
+
+        // Auto-login trigger: Looks for common login prompts
+        if (text.includes('login') || text.includes('password')) {
+            setTimeout(() => {
+                bot.chat(`/login ${config.password}`);
+                console.log('Login command sent.');
+                
+                // Switch server after logging in
+                setTimeout(() => {
+                    bot.chat('/server survival');
+                    console.log('Server switch command sent.');
+                }, 3000);
+            }, 1000);
+        }
     });
 
-    // Auto-reconnect
+    bot.on('spawn', () => {
+        console.log('Bot spawned. Waiting for server interaction...');
+        // Anti-AFK: Jump every 5 minutes
+        setInterval(() => {
+            bot.setControlState('jump', true);
+            setTimeout(() => bot.setControlState('jump', false), 500);
+        }, 300000);
+    });
+
     bot.on('end', () => {
-        console.log('Disconnected. Reconnecting...');
+        console.log('Disconnected. Reconnecting in 5 seconds...');
         setTimeout(createBot, 5000);
     });
 
-    bot.on('error', (err) => console.log('Error:', err));
+    bot.on('error', (err) => console.log('Bot Error:', err));
 }
 
 createBot();
