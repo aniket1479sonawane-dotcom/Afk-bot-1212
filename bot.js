@@ -1,55 +1,55 @@
 const mineflayer = require('mineflayer');
 const express = require('express');
 
-// --- 1. Web Server (Keeps Render from sleeping) ---
+// --- Web Server (Keeps Render awake) ---
 const app = express();
 app.get('/', (req, res) => res.send('Bot is active.'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
 
-// --- 2. Bot Configuration ---
+// --- Bot Configuration ---
 const config = {
-    host: 'YOUR_SERVER_IP', // <--- REPLACE THIS
-    port: 25565,            // Usually 25565
-    username: 'YOUR_BOT_NAME',
-    password: 'YOUR_PASSWORD',
-    auth: 'offline'         // Change to 'microsoft' if your server is Premium
+    host: 'fun.kelmora.cloud',
+    port: 25581,
+    username: 'Obanai_Iguro1479',
+    password: 'Aniket@1479',
+    auth: 'offline'
 };
 
 function createBot() {
     const bot = mineflayer.createBot(config);
 
-    // Logs server messages to your Render console
     bot.on('message', (jsonMsg) => {
         const text = jsonMsg.toString();
         console.log(text);
 
-        // Auto-login trigger: Looks for common login prompts
+        // Detect login prompt
         if (text.includes('login') || text.includes('password')) {
             setTimeout(() => {
                 bot.chat(`/login ${config.password}`);
                 console.log('Login command sent.');
                 
-                // Switch server after logging in
+                // Wait to ensure login is processed before switching server
                 setTimeout(() => {
                     bot.chat('/server survival');
                     console.log('Server switch command sent.');
-                }, 3000);
-            }, 1000);
+                }, 4000);
+            }, 2000);
         }
     });
 
     bot.on('spawn', () => {
-        console.log('Bot spawned. Waiting for server interaction...');
-        // Anti-AFK: Jump every 5 minutes
+        console.log('Bot has spawned.');
+        
+        // Basic Anti-AFK: Jump every 5 minutes
         setInterval(() => {
             bot.setControlState('jump', true);
             setTimeout(() => bot.setControlState('jump', false), 500);
         }, 300000);
     });
 
-    bot.on('end', () => {
-        console.log('Disconnected. Reconnecting in 5 seconds...');
+    bot.on('end', (reason) => {
+        console.log(`Disconnected: ${reason}. Reconnecting in 5 seconds...`);
         setTimeout(createBot, 5000);
     });
 
